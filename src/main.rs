@@ -1,8 +1,15 @@
 
-use std::io::Write;
 use std::net::{ TcpListener, TcpStream, UdpSocket };
 use std::thread;
 
+fn tcp_client() {
+    let mut stream = TcpStream::connect("127.0.0.1:34254").unwrap();
+    // ignore the Result
+    let _ = stream.write(&[1]);
+    let _ = stream.read(&mut [0; 128]); // ignore here too
+    // the stream is closed here
+    drop(stream);
+}
 fn tcp_server() {
     let listener = TcpListener::bind("127.0.0.1:80").unwrap();
     println!("listening started, ready to accept");
@@ -25,6 +32,8 @@ fn tcp_server() {
 fn udp_server(){
     let mut socket = UdpSocket::bind("127.0.0.1:34254");
     thread::spawn(move|| {
+
+        // received data from connection
         let mut buf = [0; 10];
         let (amt, src) = try!(socket.recv_from(&mut buf));
 
