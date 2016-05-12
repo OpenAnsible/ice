@@ -1,28 +1,67 @@
+use std::io::{ Read, Write };
 
-use std::net::{ TcpListener, TcpStream, UdpSocket };
+// Shutdown{ Read, Write, Both }
+use std::net::{ TcpListener, TcpStream, UdpSocket, Shutdown };
 use std::thread;
 
 fn tcp_client() {
-    let mut stream = TcpStream::connect("127.0.0.1:34254").unwrap();
+    let host       = "127.0.0.1:8000";
+    let mut stream = TcpStream::connect(host).unwrap();
     // ignore the Result
-    let _ = stream.write(&[1]);
-    let _ = stream.read(&mut [0; 128]); // ignore here too
+    let _ = stream.write(&[71, 69, 84]);
+
+    let mut buffer    = vec![0; 2048];
+    let length: usize = stream.read(&mut buffer).unwrap();
+    let buffer = &mut buffer[0..length];
+    
+    println!("Buffer Len: {:?}", length);
+    println!("Buffer Data:\n{:?}", buffer );
+
     // the stream is closed here
     drop(stream);
 }
+
 fn tcp_server() {
-    let listener = TcpListener::bind("127.0.0.1:80").unwrap();
-    println!("listening started, ready to accept");
+    let host     = "127.0.0.1:8000";
+    let listener = TcpListener::bind(host).unwrap();
+    println!("[TCP Server] server running on {} ...", host);
+    println!("[TCP Server] listening started, ready to accept ...");
     for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                thread::spawn(move|| {
-                    // connection succeeded
-                    let mut stream = stream.unwrap();
-                    stream.write(b"Hello World\r\n").unwrap();
+        match stream.ok() {
+            Some(stream) => {
+                let child = thread::spawn(move|| {
+                    let mut stream  = stream;
+                
+                    println!("Addres: {:?} \t {:?}", stream.peer_addr(), stream.local_addr() );
+
+                    // Bytes
+                    // [71, 69, 84] => "GET"
+                    let mut buffer  = vec![0; 3];
+                    let length = stream.read(&mut buffer).unwrap();
+
+                    // Strings
+                    // let mut buffer = String::new();
+                    // let length = stream.read_to_string(&mut buffer);
+
+                    // Read All
+                    // let mut buffer = Vec::new();
+                    // let length = stream.read_to_end(&mut buffer);
+
+                    println!("Buffer Len: {:?}", length);
+                    println!("Buffer Data:\n{:?}", buffer );
+
+
+                    // Response
+                    stream.write(&[87,87,87,87]);
+
+                    // shutdown connection
+                    stream.shutdown(Shutdown::Both);
                 });
+                let res = child.join();
+            },
+            None  => {
+                println!("[WARN] connection failed " );
             }
-            Err(e) => { /* connection failed */ }
         }
     }
     // close the socket server
@@ -30,22 +69,38 @@ fn tcp_server() {
 }
 
 fn udp_server(){
-    let mut socket = UdpSocket::bind("127.0.0.1:34254");
-    thread::spawn(move|| {
+    let host = "127.0.0.1:9000";
+    let mut socket = UdpSocket::bind(host).unwrap();
 
-        // received data from connection
-        let mut buf = [0; 10];
-        let (amt, src) = try!(socket.recv_from(&mut buf));
+    println!("[UDP Server] server running on {} ...", host);
 
-        // Send a reply to the socket we received data from
-        let buf = &mut buf[..amt];
-        buf.reverse();
-        try!(socket.send_to(buf, &src));
+    let child = thread::spawn(move || {
+        let mut buffer = vec![0; 2048];
+        loop {
+            // received data from connection
+            let result     = socket.recv_from(&mut buffer).ok();
+            match result {
+                Some((length, addr)) => {
+                    // Send a reply to the socket we received data from
+                    let buffer = &mut buffer[0..length];
+                    println!("[UDP Server] received data from {:?} :\n{:?}", addr, buffer );
+
+                    socket.send_to(buffer, &addr);
+                    println!("[UDP Server] send back.");
+                },
+                None => {
+                    println!("[UDP Server] received data fail !");
+                }
+            };
+        };
+        // close the socket
+        drop(socket);
     });
-    // close the socket
-    drop(socket);
+    let res = child.join();
 }
 
 fn main() {
     tcp_server();
+    // udp_server();
+    // tcp_client();
 }
