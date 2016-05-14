@@ -145,6 +145,8 @@ pub static TURN_DEFAULT_TCP_CONNECT_TIMEOUT: usize = 30;
 // }
 
 pub mod Message {
+    use stun:: { STUN_MAGIC_CODE };
+    
     #[derive(Debug)]
     pub struct Header {
         pub prefix: usize, // must be 0x0000
