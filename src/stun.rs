@@ -17,6 +17,18 @@ use std::collections::btree_map::BTreeMap;
 //      stun1.vovida.org:3478
 
 
+// STUN Message Header
+pub static STUN_MAGIC_CODE: usize        = 0x0000; // Protocol begin.
+pub static STUN_MAGIC_COOKIE: usize      = 0x2112A442; // Magic Cookie [0x21, 0x12, 0xA4, 0x42], [33, 18, 164, 66]
+pub static STUN_HEAD_MESSAGE_SIZE: usize = 20;
+
+// STUN Message Type
+// 0b000000000001 -> 0b 000000 000001 -> method, class -> 0x00 0x01 -> Binding, Indication
+pub static STUN_HEAD_MESSAGE_TYPE_REQUEST: usize         = 0x0001; // Request Class With Binding Method
+pub static STUN_HEAD_MESSAGE_TYPE_INDICATION: usize      = 0x0101; // Indication Class With Binding Method
+pub static STUN_HEAD_MESSAGE_TYPE_SUCCESSRESPONSE: usize = 0x0101; // Success Response Class With Binding Method
+pub static STUN_HEAD_MESSAGE_TYPE_ERRORRESPONSE: usize   = 0x0111; // Error Response Class With Binding Method
+
 // Methods
 pub static STUN_METHOD_BINDING: usize  = 0x0001; // STUN Protocol
 
@@ -92,7 +104,6 @@ pub static TURN_ERROR_443: &'static str    = "Peer address family mismatch"; // 
 pub static TURN_ERROR_446: &'static str    = "Connection Already Exists";    // RFC6062 (TURN-TCP)
 pub static TURN_ERROR_447: &'static str    = "Connection Timeout or Failure";// RFC6062 (TURN-TCP)
 
-pub static STUN_MAGIC_COOKIE: usize          = 0x2112A442; // STUN Magic Cookie
 pub static STUN_FINGERPRINT_XOR_VALUE: usize = 0x5354554E; // STUN FINGERPRINT XOR Value
 
 // family address for MAPPED-ADDRESS like attributes 
@@ -134,16 +145,6 @@ pub static TURN_DEFAULT_TCP_CONNECT_TIMEOUT: usize = 30;
 // }
 
 pub mod Message {
-    pub const HeadLength: usize      = 20;
-    // 0b000000000001 -> 0b 000000 000001 -> method, class -> 0x00 0x01 -> Binding, Indication
-    pub const MagicCode: usize       = 0x00; // 0, Begin.
-
-    pub const Request: usize         = 0x0001; // Binding Request
-    pub const Indication: usize      = 0x0101; // 
-    pub const SuccessResponse: usize = 0x0101; // Binding Success Response
-    pub const ErrorResponse: usize   = 0x0111; // Binding Error Response
-    pub const MagicCookie: usize     = 0x2112A442; //[0x21, 0x12, 0xA4, 0x42], [33, 18, 164, 66]
-
     #[derive(Debug)]
     pub struct Header {
         pub prefix: usize, // must be 0x0000
@@ -165,7 +166,7 @@ pub mod Message {
                 return Err("Error: header size must be 20 Bytes.".to_string());
             }
             let msg_prefix  = header[0] as usize;  // 0x00
-            if msg_prefix != MagicCode {
+            if msg_prefix != STUN_MAGIC_CODE {
                 return Err("Error: protocol error.".to_string());
             }
             // Message Type(1 Bytes):
@@ -222,7 +223,7 @@ fn onmessage (socket: &UdpSocket) {
             match header {
                 Ok(header) => {
                     println!("{:?}", header);
-                    
+
                     let mut body: Vec<u8> = Vec::with_capacity(header.length);
                     let _ = socket.recv_from(&mut body);
                     println!("{:?}", body );
