@@ -64,7 +64,6 @@
 *   `使用WebRTC搭建前端视频聊天室——数据通道篇 <https://segmentfault.com/a/1190000000733779>`_
 
 *   `ICE协议看明白 <http://my.oschina.net/u/220943/blog/38203>`_
-*   `简析STUN协议 <http://blog.csdn.net/ast_224/article/details/3176377>`_
 *   `P2P实时音视频之NAT穿越 <http://blog.easemob.com/?p=49>`_
 *   `在symmetric NAT中怎么实现p2p <http://lifeofzjs.com/blog/2014/07/19/how-p2p-in-symmetric-nat/>`_
 *   `Python实现STUN+TURN+P2P聊天 <https://laike9m.com/blog/pythonshi-xian-stunturnp2pliao-tian,29/>`_ 
