@@ -4,6 +4,12 @@ use std::io::{ Read, Write };
 use std::net::{ TcpListener, TcpStream, UdpSocket, Shutdown };
 use std::thread;
 
+// TODO: 切换到高性能网络库
+//       https://github.com/carllerche/mio/blob/getting-started/doc/getting-started.md
+
+mod stun;
+
+
 fn tcp_client() {
     let host       = "127.0.0.1:8000";
     let mut stream = TcpStream::connect(host).unwrap();
@@ -13,7 +19,7 @@ fn tcp_client() {
     let mut buffer    = vec![0; 2048];
     let length: usize = stream.read(&mut buffer).unwrap();
     let buffer = &mut buffer[0..length];
-    
+
     println!("Buffer Len: {:?}", length);
     println!("Buffer Data:\n{:?}", buffer );
 
@@ -22,7 +28,9 @@ fn tcp_client() {
 }
 
 fn tcp_server() {
-    let host     = "127.0.0.1:8000";
+    // https://tools.ietf.org/html/rfc5389#section-18.4
+    // port: 3478
+    let host     = "127.0.0.1:9000";
     let listener = TcpListener::bind(host).unwrap();
     println!("[TCP Server] server running on {} ...", host);
     println!("[TCP Server] listening started, ready to accept ...");
@@ -99,8 +107,21 @@ fn udp_server(){
     let res = child.join();
 }
 
+
+
 fn main() {
-    tcp_server();
+
+    // let tcp = thread::spawn(move || {
+    //     tcp_server();
+    // });
+    // let udp = thread::spawn(move || {
+    //     udp_server();
+    // });
+    // let _ = tcp.join();
+    // let _ = udp.join();
+    
     // udp_server();
     // tcp_client();
+    let host = "127.0.0.1:9000";
+    stun::run(host);
 }
