@@ -3,4 +3,15 @@ name = "ice"
 version = "0.1.0"
 authors = ["Luo <gnulinux@126.com>"]
 
+[lib]
+name = "ice"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ice"
+path = "src/main.rs"
+
+
 [dependencies]
+url  = "1.2.3"
+rand = "0.3.15"

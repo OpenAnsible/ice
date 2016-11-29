@@ -1,4 +1,8 @@
+#![feature(lookup_host)]
 #![allow(dead_code, unused_imports, unused_variables, unused_mut, unused_must_use, unreachable_code, non_snake_case)]
+
+extern crate url;
+extern crate rand;
 
 use std::string::ToString;
 use std::convert::AsRef;
@@ -11,7 +15,7 @@ use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown 
 // TODO: 切换到高性能网络库
 //       https://github.com/carllerche/mio/blob/getting-started/doc/getting-started.md
 
-mod stun;
+pub mod stun;
 
 
 fn tcp_client() {
@@ -107,14 +111,19 @@ fn main() {
     // let tcp = thread::spawn(move || {
     //     tcp_server();
     // });
-    // let udp = thread::spawn(move || {
-    //     udp_server();
-    // });
+    
     // let _ = tcp.join();
     // let _ = udp.join();
     
-    // udp_server();
-    // tcp_client();
-    let host = "127.0.0.1:9000";
-    stun::run(host, "udp");
+    // let host = "127.0.0.1:3479";
+    // stun::run(host, "udp");
+
+    // return ();
+
+    let uri = "127.0.0.1:3479";
+    let client = stun::Client::new(uri, None).unwrap();
+    println!("{:?}", client.send(&[0, 1, 0, 0, 33, 18, 164, 66, 70, 149, 250, 122, 253, 177, 191, 174, 164, 118, 181, 61]));
+
+
+    
 }

@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_imports, unused_variables, unused_mut, unused_must_use, unreachable_code, non_snake_case, non_camel_case_types)]
 
+
 use std::{thread, time, mem};
 
 use std::str::FromStr;
@@ -7,8 +8,9 @@ use std::string::ToString;
 use std::convert::AsRef;
 use std::io::{Read, Write};
 
-use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown };
-// use std::collections::btree_map::BTreeMap;
+
+use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown, lookup_host };
+
 
 pub const PUBLIC_STUN_SERVERS: [&'static str; 11] = [
     "stun:stun.xten.net:3478",
@@ -31,7 +33,26 @@ pub const STUN_PORT : u16 = 3478;
 pub const STUNS_PORT: u16 = 5349;
 pub const STUN_FINGERPRINT_XOR_VALUE: u32 = 0x5354554E; // STUN FINGERPRINT XOR Value
 
+// default allocation lifetime (in seconds) unless refreshed 
+pub static TURN_DEFAULT_ALLOCATION_LIFETIME: usize = 600;
+// maximum allocation lifetime (in seconds) unless refreshed 
+pub static TURN_MAX_ALLOCATION_LIFETIME: usize     = 3600;
+// default permission lifetime (in seconds) unless refreshed 
+pub static TURN_DEFAULT_PERMISSION_LIFETIME: usize = 300;
+// default channel lifetime (in seconds) unless refreshed 
+pub static TURN_DEFAULT_CHANNEL_LIFETIME: usize    = 600;
+// lifetime of a nonce (in seconds) 
+pub static TURN_DEFAULT_NONCE_LIFETIME: usize      = 3600;
+// lifetime of a token (in seconds) 
+pub static TURN_DEFAULT_TOKEN_LIFETIME: usize      = 60;
 
+// RFC6062 (TURN-TCP) 
+// Timeout of TCP relay when no ConnectionBind is received (in seconds) 
+pub static TURN_DEFAULT_TCP_RELAY_TIMEOUT: usize   = 30;
+
+// RFC6062 (TURN-TCP) 
+// Timeout of TCP connect (in seconds) 
+pub static TURN_DEFAULT_TCP_CONNECT_TIMEOUT: usize = 30;
 
 /**
 
@@ -737,6 +758,7 @@ impl Message {
     pub fn from_bytes (bytes: &[u8]) -> Result<Message, &'static str> {
         match bytes.len() {
             20 => {
+                // https://tools.ietf.org/html/rfc5389#appendix-A
                 // 0b 00 01 000000000000
                 let bits = format!("{:08b}", bytes[0]) + format!("{:08b}", bytes[1]).as_ref();
                 let magic_code     = match u32::from_str_radix(&bits[0..2], 2) {
@@ -789,29 +811,116 @@ impl Message {
 
 }
 
-// default allocation lifetime (in seconds) unless refreshed 
-pub static TURN_DEFAULT_ALLOCATION_LIFETIME: usize = 600;
-// maximum allocation lifetime (in seconds) unless refreshed 
-pub static TURN_MAX_ALLOCATION_LIFETIME: usize     = 3600;
-// default permission lifetime (in seconds) unless refreshed 
-pub static TURN_DEFAULT_PERMISSION_LIFETIME: usize = 300;
-// default channel lifetime (in seconds) unless refreshed 
-pub static TURN_DEFAULT_CHANNEL_LIFETIME: usize    = 600;
-// lifetime of a nonce (in seconds) 
-pub static TURN_DEFAULT_NONCE_LIFETIME: usize      = 3600;
-// lifetime of a token (in seconds) 
-pub static TURN_DEFAULT_TOKEN_LIFETIME: usize      = 60;
+#[derive(Debug)]
+pub struct Url {
+    url  : ::url::Url,
+    addr : SocketAddr
+}
+impl FromStr for Url {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err>{
+        let mut uri = s.to_owned();
+        if uri.starts_with("stun") == false && uri.starts_with("stuns") == false {
+            uri = format!("stun://{}", uri);
+        }
+        if uri.starts_with("stun:") && uri.starts_with("stun://") == false {
+            uri = uri.replace("stun:", "stun://");
+        } else if uri.starts_with("stun:") && uri.starts_with("stun://") == false {
+            uri = uri.replace("stuns:", "stuns://");
+        }
+        match ::url::Url::parse(uri.as_ref()) {
+            Ok(url) => {
+                let scheme   = match url.scheme() {
+                    "stun"  => "stun",
+                    "stuns" => "stuns",
+                    _       => return Err("scheme error".to_owned())
+                }; 
+                let host_str = match url.host_str(){
+                    Some(host_str) => host_str,
+                    None           => return Err("host str error".to_owned())
+                };
+                let port     = match url.port() {
+                    Some(port) => port,
+                    None       => {
+                        if scheme == "stun" {
+                            STUN_PORT
+                        } else if scheme == "stuns" {
+                            STUNS_PORT
+                        } else {
+                            unreachable!()
+                        }
+                    }
+                };
+                let mut addr = match lookup_host(host_str).unwrap().next() {
+                    Some(addr) => addr,
+                    None => return Err("lookup host failure.".to_owned())
+                };
+                addr.set_port(port);
 
-// RFC6062 (TURN-TCP) 
-// Timeout of TCP relay when no ConnectionBind is received (in seconds) 
-pub static TURN_DEFAULT_TCP_RELAY_TIMEOUT: usize   = 30;
+                Ok(Url {
+                    url : url.clone(),
+                    addr: addr
+                })
+            },
+            Err(_)  => Err("url parse error.".to_owned())
+        }
+    }
 
-// RFC6062 (TURN-TCP) 
-// Timeout of TCP connect (in seconds) 
-pub static TURN_DEFAULT_TCP_CONNECT_TIMEOUT: usize = 30;
+}
+impl Url {
+    pub fn is_stun(&self) -> bool {
+        self.url.scheme() == "stun"
+    }
+    pub fn is_stuns(&self) -> bool {
+        self.url.scheme() == "stuns"
+    }
+    pub fn addr(&self) -> SocketAddr {
+        self.addr
+    }
+}
 
+#[derive(Debug)]
+pub struct Client {
+    remote_url: Url,
+    local_url : Url,
+    socket    : UdpSocket
+}
 
+impl Client {
+    pub fn new(remote_uri: &str, local_uri: Option<&str>) -> Result<Self, &'static str> {
+        let remote_url = Url::from_str(remote_uri).expect("remote uri format error.");
+        let local_url  = match local_uri {
+            Some(local_uri) => Url::from_str(local_uri).expect("local  uri format error."),
+            None            => Url::from_str(format!("stun://127.0.0.1:{}", STUN_PORT).as_ref())
+                                .expect("local  uri format error.")
+        };
+        let uri = local_url.addr();
+        if uri.ip().is_loopback() {
+            Ok(Client {
+                remote_url: remote_url,
+                local_url : local_url,
+                socket    : UdpSocket::bind(uri).expect("Couldn't bind port")
+            })
+        } else {
+            Err("local_uri ip error.")
+        }
 
+    }
+    pub fn send(&self, msg: &[u8]) -> Result<usize, &'static str> {
+        println!("self: {:?}", self.socket);
+        println!("target: {:?}", self.remote_url.addr() );
+        match self.socket.send_to(msg, self.remote_url.addr()) {
+            Ok(size) => Ok(size),
+            Err(_)   => Err("send error.")
+        }
+    }
+    pub fn stun(){
+
+    }
+    pub fn nat() {
+
+    }
+}
 
 pub fn tcp_handler(stream: &mut TcpStream) {
     println!("[INFO] Connection: {:?}", stream);

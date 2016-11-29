@@ -7,6 +7,20 @@
 .. contents::
 
 
+介绍
+------
+
+`STUN` , `TURN` , `ICE` `Rust` 语言的实现。
+
+**注意:** 由于使用了还在测试当中的语言特性，所以编译时，请选择 `nightly` 版本的 Rust 编译器 以及 工具链。
+
+测试
+------
+
+.. code:: bash
+
+	cargo run --example server
+	cargo run --example client
 
 
 参考
