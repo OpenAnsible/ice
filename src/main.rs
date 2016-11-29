@@ -1,8 +1,12 @@
-use std::io::{ Read, Write };
+#![allow(dead_code, unused_imports, unused_variables, unused_mut, unused_must_use, unreachable_code, non_snake_case)]
 
-// Shutdown{ Read, Write, Both }
-use std::net::{ TcpListener, TcpStream, UdpSocket, Shutdown };
-use std::thread;
+use std::string::ToString;
+use std::convert::AsRef;
+use std::io::{Read, Write};
+use std::{thread, time};
+
+use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown };
+
 
 // TODO: 切换到高性能网络库
 //       https://github.com/carllerche/mio/blob/getting-started/doc/getting-started.md
@@ -13,7 +17,7 @@ mod stun;
 fn tcp_client() {
     let host       = "127.0.0.1:8000";
     let mut stream = TcpStream::connect(host).unwrap();
-    // ignore the Result
+
     let _ = stream.write(&[71, 69, 84]);
 
     let mut buffer    = vec![0; 2048];
@@ -23,7 +27,6 @@ fn tcp_client() {
     println!("Buffer Len: {:?}", length);
     println!("Buffer Data:\n{:?}", buffer );
 
-    // the stream is closed here
     drop(stream);
 }
 
@@ -47,14 +50,6 @@ fn tcp_server() {
                     let mut buffer  = vec![0; 3];
                     let length = stream.read(&mut buffer).unwrap();
 
-                    // Strings
-                    // let mut buffer = String::new();
-                    // let length = stream.read_to_string(&mut buffer);
-
-                    // Read All
-                    // let mut buffer = Vec::new();
-                    // let length = stream.read_to_end(&mut buffer);
-
                     println!("Buffer Len: {:?}", length);
                     println!("Buffer Data:\n{:?}", buffer );
 
@@ -72,7 +67,6 @@ fn tcp_server() {
             }
         }
     }
-    // close the socket server
     drop(listener);
 }
 
@@ -101,7 +95,6 @@ fn udp_server(){
                 }
             };
         };
-        // close the socket
         drop(socket);
     });
     let res = child.join();
@@ -123,5 +116,5 @@ fn main() {
     // udp_server();
     // tcp_client();
     let host = "127.0.0.1:9000";
-    stun::run(host);
+    stun::run(host, "udp");
 }
