@@ -10,28 +10,39 @@ use std::io::{Read, Write};
 use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown };
 // use std::collections::btree_map::BTreeMap;
 
+pub const PUBLIC_STUN_SERVERS: [&'static str; 11] = [
+    "stun:stun.xten.net:3478",
+    "stun:sip.iptel.org:3478",
+    "stun:tesla.divmod.net:3478",
+    "stun:erlang.divmod.net:3478",
+    "stun:stun.wirlab.net:3478",
+    "stun:stun2.wirlab.net:3478",
+    "stun:stun1.vovida.org:3478",
+    "stun:stun1.l.google.com:19302",
+    "stun:stun2.l.google.com:19302",
+    "stun:stun3.l.google.com:19302",
+    "stun:stun4.l.google.com:19302"
+];
 
-// Public STUN Servers
-//      stun.xten.net:3478
-//      sip.iptel.org:3478
-//      tesla.divmod.net:3478
-//      erlang.divmod.net:3478
-//      stun.wirlab.net:3478
-//      stun2.wirlab.net:3478
-//      stun1.vovida.org:3478
-//      { url: 'stun:stun1.l.google.com:19302' },
-//      { url: 'stun:stun2.l.google.com:19302' },
-//      { url: 'stun:stun3.l.google.com:19302' },
-//      { url: 'stun:stun4.l.google.com:19302' }
+// https://tools.ietf.org/html/rfc5389#section-18.4
+//      stun   3478/(tcp, udp)
+//      stuns  5349/(tcp, udp)
+pub const STUN_PORT : u16 = 3478;
+pub const STUNS_PORT: u16 = 5349;
+pub const STUN_FINGERPRINT_XOR_VALUE: u32 = 0x5354554E; // STUN FINGERPRINT XOR Value
 
 
-
-// https://tools.ietf.org/html/rfc5389#page-20
-// https://tools.ietf.org/html/rfc5389#section-18.3
-// http://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml#stun-parameters-6
-// Error Code: range 0 - 699
 
 /**
+
+Refs:
+    https://tools.ietf.org/html/rfc5389#page-20
+    https://tools.ietf.org/html/rfc5389#section-18.3
+    http://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml#stun-parameters-6
+
+Error Code:
+    range 0 - 699
+
 0-299   Reserved
 301-399 Unassigned
 402     Unassigned
@@ -282,6 +293,46 @@ impl Method {
 }
 
 /**
+The address family can take on the following values:
+    
+    0x01:IPv4
+    0x02:IPv6
+**/
+pub enum AddressFamily {
+    None,
+    Ipv4,
+    Ipv6
+}
+
+impl ToString for AddressFamily {
+    fn to_string(&self) -> String {
+        match *self {
+            AddressFamily::None => "Unknow".to_owned(),
+            AddressFamily::Ipv4 => "IPv4".to_owned(),
+            AddressFamily::Ipv6 => "IPv6".to_owned()
+        }
+    }
+}
+
+impl AddressFamily {
+    pub fn from_u32(n: u32) -> Result<Self, &'static str> {
+        match n {
+            0x00 => Ok(AddressFamily::None),
+            0x01 => Ok(AddressFamily::Ipv4),
+            0x02 => Ok(AddressFamily::Ipv6),
+            _    => Err("Address Family Error")
+        }
+    }
+    pub fn to_u32(&self) -> u32 {
+        match *self {
+            AddressFamily::None => 0x00,
+            AddressFamily::Ipv4 => 0x01,
+            AddressFamily::Ipv6 => 0x02
+        }
+    }
+}
+
+/**
 Range:
     Required: 0x0000-0x7FFF, Options: 0x8000-0xFFFF
     0x0000-0x3FFF   IETF Review comprehension-required range
@@ -482,6 +533,7 @@ impl ToString for Attribute {
         }
     }
 }
+
 impl Attribute {
     pub fn from_u32 (n: u32) -> Result<Self, &'static str> {
         match n {
@@ -736,13 +788,6 @@ impl Message {
     }
 
 }
-
-
-pub static STUN_FINGERPRINT_XOR_VALUE: usize = 0x5354554E; // STUN FINGERPRINT XOR Value
-
-// family address for MAPPED-ADDRESS like attributes 
-pub static STUN_ATTR_FAMILY_IPV4: usize      = 0x01;
-pub static STUN_ATTR_FAMILY_IPV6: usize      = 0x02;
 
 // default allocation lifetime (in seconds) unless refreshed 
 pub static TURN_DEFAULT_ALLOCATION_LIFETIME: usize = 600;
