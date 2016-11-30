@@ -184,7 +184,7 @@ pub fn bytes_to_hex_str(bytes: &[u8]) -> String {
 impl Header {
     pub fn into_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
-        
+
         assert_eq!(self.magic_code, 0u8);
 
         let bits = format!("00{:02b}", self.class.to_u32() as u8 )
@@ -205,57 +205,54 @@ impl Header {
         bytes
     }
     pub fn from_bytes (bytes: &[u8]) -> Result<Self, &'static str> {
-        match bytes.len() {
-            20 => {
-                // https://tools.ietf.org/html/rfc5389#appendix-A
-                // 0b 00 01 000000000000
-                let bits = format!("{:08b}", bytes[0]) + format!("{:08b}", bytes[1]).as_ref();
-                let magic_code     = match u8::from_str_radix(&bits[0..2], 2) {
-                    Ok(magic_code) => magic_code,
-                    Err(_)         => return Err("magic code parse error")
-                };
-                // ((msg_type.clone() as u32) & 0x3EEF) as usize
-                let message_class  = match u8::from_str_radix(&bits[2..4], 2) {
-                    Ok(message_class) => match Class::from_u32(message_class as u32) {
-                        Ok(class) => class,
-                        Err(e)    => return Err(e)
-                    },
-                    Err(_)        => return Err("message class error.")
-                };
-                // ((msg_type.clone() as u32) & 0x0110) as usize
-                let message_method  = match u16::from_str_radix(&bits[4..16], 2) {
-                    Ok(message_method) => match Method::from_u32(message_method as u32) {
-                        Ok(method) => method,
-                        Err(e)     => return Err(e)
-                    },
-                    Err(_)         => return Err("message class error.")
-                };
-
-                let message_length = match u16::from_str_radix(bytes_to_hex_str(&bytes[2..4]).as_ref(), 16) {
-                    Ok(message_length) => message_length,
-                    Err(_)             => return Err("message length error")
-                };
-                let magic_cookie   = match u32::from_str_radix(bytes_to_hex_str(&bytes[4..8]).as_ref(), 16) {
-                    Ok(magic_cookie) => magic_cookie,
-                    Err(_)           => return Err("magic cookie error")
-                };
-
-                let transaction_id = if magic_cookie != STUN_MAGIC_COOKIE {
-                    bytes_to_hex_str(&bytes[4..20])
-                } else {
-                    bytes_to_hex_str(&bytes[8..20])
-                };
-                
-                Ok(Header{
-                    magic_code    : magic_code,
-                    class         : message_class,
-                    method        : message_method,
-                    length        : message_length,
-                    magic_cookie  : magic_cookie,
-                    transaction_id: transaction_id
-                })
-            },
-            _  => Err("header size must be 20 Bytes.")
+        if bytes.len() < 20 {
+            return Err("header size must be 20 Bytes.");
         }
+        let bytes = &bytes[..20];
+        // https://tools.ietf.org/html/rfc5389#appendix-A
+        // 0b 00 01 000000000000
+        let bits = format!("{:08b}", bytes[0]) + format!("{:08b}", bytes[1]).as_ref();
+        let magic_code     = match u8::from_str_radix(&bits[0..2], 2) {
+            Ok(magic_code) => magic_code,
+            Err(_)         => return Err("magic code parse error")
+        };
+        let message_class  = match u8::from_str_radix(&bits[2..4], 2) {
+            Ok(message_class) => match Class::from_u32(message_class as u32) {
+                Ok(class) => class,
+                Err(e)    => return Err(e)
+            },
+            Err(_)        => return Err("message class error.")
+        };
+        let message_method  = match u16::from_str_radix(&bits[4..16], 2) {
+            Ok(message_method) => match Method::from_u32(message_method as u32) {
+                Ok(method) => method,
+                Err(e)     => return Err(e)
+            },
+            Err(_)         => return Err("message class error.")
+        };
+
+        let message_length = match u16::from_str_radix(bytes_to_hex_str(&bytes[2..4]).as_ref(), 16) {
+            Ok(message_length) => message_length,
+            Err(_)             => return Err("message length error")
+        };
+        let magic_cookie   = match u32::from_str_radix(bytes_to_hex_str(&bytes[4..8]).as_ref(), 16) {
+            Ok(magic_cookie) => magic_cookie,
+            Err(_)           => return Err("magic cookie error")
+        };
+
+        let transaction_id = if magic_cookie != STUN_MAGIC_COOKIE {
+            bytes_to_hex_str(&bytes[4..20])
+        } else {
+            bytes_to_hex_str(&bytes[8..20])
+        };
+        
+        Ok(Header{
+            magic_code    : magic_code,
+            class         : message_class,
+            method        : message_method,
+            length        : message_length,
+            magic_cookie  : magic_cookie,
+            transaction_id: transaction_id
+        })
     }
 }
