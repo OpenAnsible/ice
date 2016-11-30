@@ -7,6 +7,29 @@ use ::url::Url;
 
 use super::{STUN_PORT, STUNS_PORT};
 
+/// [RFC7064]:
+///     https://tools.ietf.org/html/rfc7064
+///     URI Scheme for the Session Traversal Utilities for NAT (STUN) Protocol
+
+/// URI Scheme Syntax:
+///     "stun" and "stuns" URIs have the following formal ABNF syntax
+///     [RFC5234]:
+///     stunURI       = scheme ":" host [ ":" port ]
+///     scheme        = "stun" / "stuns"
+
+/// Examples:
+///     Table 1 shows examples for the "stun" and "stuns" URI schemes.  For
+///     all these examples, the <host> component is populated with
+///     "example.org".
+///      +-----------------------+
+///      | URI                   |
+///      +-----------------------+
+///      | stun:example.org      |
+///      | stuns:example.org     |
+///      | stun:example.org:8000 |
+///      +-----------------------+
+
+
 pub fn url_parse (s: &str) -> Result<SocketAddr, &'static str> {
     let mut uri = s.to_owned();
     if uri.starts_with("stun") == false && uri.starts_with("stuns") == false {

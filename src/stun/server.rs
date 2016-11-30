@@ -3,7 +3,7 @@ use std::thread;
 use std::str::FromStr;
 use std::string::ToString;
 use std::io::{Read, Write};
-use std::net::{ SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown };
+use std::net::{SocketAddr, IpAddr, TcpListener, TcpStream, UdpSocket, Shutdown};
 
 use super::{url_parse, STUN_PORT, STUNS_PORT};
 use super::{packet};
