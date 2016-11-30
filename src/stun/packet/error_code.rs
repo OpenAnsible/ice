@@ -161,4 +161,7 @@ impl ErrorCode {
             ErrorCode::GlobalFailure                => 600
         }
     }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.to_string().into_bytes()
+    }
 }

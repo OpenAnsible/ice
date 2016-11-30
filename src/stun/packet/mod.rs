@@ -7,11 +7,14 @@ use std::io::{Read, Write};
 
 mod header;
 mod attribute;
-mod address_family;
+mod error_code;
+
+pub mod address;
 
 pub use self::header::{Header, Method, Class};
 pub use self::attribute::{AttributeType, Attribute};
-pub use self::address_family::AddressFamily;
+pub use self::address::{Address, Family};
+pub use self::error_code::ErrorCode;
 
 #[derive(Debug)]
 pub struct Packet {

@@ -169,10 +169,10 @@ Head Struct
 **/
 #[derive(Debug)]
 pub struct Header {
-    magic_code    : u32,
+    magic_code    : u8,     //  2 bits
     class         : Class,  //  2 bits
     method        : Method, // 12 bits
-    length        : u32,    // 16 bits message attribute length
+    length        : u16,    // 16 bits message attribute length
     magic_cookie  : u32,    // 32 bits (Must Be 0x2112A442 (554869826))
     transaction_id: String  // 96 bits unique
 }
@@ -182,8 +182,28 @@ pub fn bytes_to_hex_str(bytes: &[u8]) -> String {
 }
 
 impl Header {
-    pub fn to_bytes(&self) -> &[u8]{
-        unimplemented!();
+    pub fn into_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        // bytes.push(u8::from_str_radix(format!("{:02X}", magic_code as u8).as_str(), 10));
+        assert_eq!(self.magic_code, 0u8);
+
+        let bits = format!("00{:02b}", self.class.to_u32() as u8 )
+                 + format!("{:012b}", self.method.to_u32() as u8).as_ref();
+        bytes.push(u8::from_str_radix(&bits[0.. 8], 2).unwrap());
+        bytes.push(u8::from_str_radix(&bits[8..16], 2).unwrap());
+        let length_bits = format!("{:016b}", self.length);
+        bytes.push(u8::from_str_radix(&length_bits[0..8], 2).unwrap());
+        bytes.push(u8::from_str_radix(&length_bits[8..16], 2).unwrap());
+        if self.magic_cookie == MAGIC_COOKIE {
+            let mc_bits = format!("{:032b}", self.magic_code);
+            bytes.push(u8::from_str_radix(&mc_bits[ 0.. 8], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[ 8..16], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[16..24], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[24..32], 2).unwrap());
+        }
+        bytes.extend(self.transaction_id.clone().into_bytes());
+        bytes
     }
     pub fn from_bytes (bytes: &[u8]) -> Result<Self, &'static str> {
         match bytes.len() {
@@ -191,28 +211,28 @@ impl Header {
                 // https://tools.ietf.org/html/rfc5389#appendix-A
                 // 0b 00 01 000000000000
                 let bits = format!("{:08b}", bytes[0]) + format!("{:08b}", bytes[1]).as_ref();
-                let magic_code     = match u32::from_str_radix(&bits[0..2], 2) {
+                let magic_code     = match u8::from_str_radix(&bits[0..2], 2) {
                     Ok(magic_code) => magic_code,
                     Err(_)         => return Err("magic code parse error")
                 };
                 // ((msg_type.clone() as u32) & 0x3EEF) as usize
-                let message_class  = match u32::from_str_radix(&bits[2..4], 2) {
-                    Ok(message_class) => match Class::from_u32(message_class) {
+                let message_class  = match u8::from_str_radix(&bits[2..4], 2) {
+                    Ok(message_class) => match Class::from_u32(message_class as u32) {
                         Ok(class) => class,
                         Err(e)    => return Err(e)
                     },
                     Err(_)        => return Err("message class error.")
                 };
                 // ((msg_type.clone() as u32) & 0x0110) as usize
-                let message_method  = match u32::from_str_radix(&bits[4..16], 2) {
-                    Ok(message_method) => match Method::from_u32(message_method) {
+                let message_method  = match u16::from_str_radix(&bits[4..16], 2) {
+                    Ok(message_method) => match Method::from_u32(message_method as u32) {
                         Ok(method) => method,
                         Err(e)     => return Err(e)
                     },
                     Err(_)         => return Err("message class error.")
                 };
 
-                let message_length = match u32::from_str_radix(bytes_to_hex_str(&bytes[2..4]).as_ref(), 16) {
+                let message_length = match u16::from_str_radix(bytes_to_hex_str(&bytes[2..4]).as_ref(), 16) {
                     Ok(message_length) => message_length,
                     Err(_)             => return Err("message length error")
                 };

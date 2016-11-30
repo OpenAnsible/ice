@@ -1,6 +1,9 @@
 
 use std::str::FromStr;
 use std::string::ToString;
+use std::net::SocketAddr;
+
+use super::ErrorCode;
 
 /**
 Range:
@@ -154,53 +157,53 @@ pub enum AttributeType {
 impl ToString for AttributeType {
     fn to_string (&self) -> String {
         match *self {
-                AttributeType::MappedAddress => "MAPPED-ADDRESS".to_owned(),
-                AttributeType::ResponseAddress => "RESPONSE-ADDRESS".to_owned(),
-                AttributeType::ChangeRequest => "CHANGE-REQUEST".to_owned(),
-                AttributeType::SourceAddress => "SOURCE-ADDRESS".to_owned(),
-                AttributeType::ChangedAddress => "CHANGED-ADDRESS".to_owned(),
-                AttributeType::UserName => "USERNAME".to_owned(),
-                AttributeType::Password => "PASSWORD".to_owned(),
-                AttributeType::MessageIntegrity => "MESSAGE-INTEGRITY".to_owned(),
-                AttributeType::ErrorCode => "ERROR-CODE".to_owned(),
-                AttributeType::UnknownAttribute => "UNKNOWN-ATTRIBUTES".to_owned(),
-                AttributeType::ReflectedFrom => "REFLECTED-FROM".to_owned(),
-                AttributeType::ChannelNumber => "CHANNEL-NUMBER".to_owned(),
-                AttributeType::LifeTime => "LIFETIME".to_owned(),
-                AttributeType::BandWidth => "BANDWIDTH".to_owned(),
-                AttributeType::XorPeerAddress => "XOR-PEER-ADDRESS".to_owned(),
-                AttributeType::Data => "DATA".to_owned(),
-                AttributeType::Realm => "REALM".to_owned(),
-                AttributeType::Nonce => "NONCE".to_owned(),
-                AttributeType::XorRelayedAddress => "XOR-RELAYED-ADDRESS".to_owned(),
-                AttributeType::RequestAddressFamily => "REQUESTED-ADDRESS-FAMILY".to_owned(),
-                AttributeType::EvenPort => "EVEN-PORT".to_owned(),
-                AttributeType::RequestedTransport => "REQUESTED-TRANSPORT".to_owned(),
-                AttributeType::DontFragment => "DONT-FRAGMENT".to_owned(),
-                AttributeType::AccessToken => "ACCESS-TOKEN".to_owned(),
-                AttributeType::XorMappedAddress => "XOR-MAPPED-ADDRESS".to_owned(),
-                AttributeType::TimerVal => "TIMER-VAL".to_owned(),
-                AttributeType::ReservationToken => "RESERVATION-TOKEN".to_owned(),
-                AttributeType::Priority => "PRIORITY".to_owned(),
-                AttributeType::UseCandidate => "USE-CANDIDATE".to_owned(),
-                AttributeType::Padding => "PADDING".to_owned(),
-                AttributeType::ResponsePort => "RESPONSE-PORT".to_owned(),
-                AttributeType::ConnectionID => "CONNECTION-ID".to_owned(),
-                AttributeType::Software => "SOFTWARE".to_owned(),
-                AttributeType::AlternateServer => "ALTERNATE-SERVER".to_owned(),
-                AttributeType::TransactionTransmitCounter => "TRANSACTION_TRANSMIT_COUNTER".to_owned(),
-                AttributeType::CacheTimeout => "CACHE-TIMEOUT".to_owned(),
-                AttributeType::FingerPrint => "FINGERPRINT".to_owned(),
-                AttributeType::ICEControlled => "ICE-CONTROLLED".to_owned(),
-                AttributeType::ICEControlling => "ICE-CONTROLLING".to_owned(),
-                AttributeType::ResponseOrigin => "RESPONSE-ORIGIN".to_owned(),
-                AttributeType::OtherAddress => "OTHER-ADDRESS".to_owned(),
-                AttributeType::ECNCheckStun => "ECN-CHECK STUN".to_owned(),
-                AttributeType::ThirdPartyAuthorization => "THIRD-PARTY-AUTHORIZATION".to_owned(),
-                AttributeType::MobilityTicket => "MOBILITY-TICKET".to_owned(),
-                AttributeType::CiscoStunFlowData => "CISCO-STUN-FLOWDATA".to_owned(),
-                AttributeType::ENFFlowDescription => "ENF-FLOW-DESCRIPTION".to_owned(),
-                AttributeType::ENFNetworkStatus => "ENF-NETWORK-STATUS".to_owned()
+            AttributeType::MappedAddress => "MAPPED-ADDRESS".to_owned(),
+            AttributeType::ResponseAddress => "RESPONSE-ADDRESS".to_owned(),
+            AttributeType::ChangeRequest => "CHANGE-REQUEST".to_owned(),
+            AttributeType::SourceAddress => "SOURCE-ADDRESS".to_owned(),
+            AttributeType::ChangedAddress => "CHANGED-ADDRESS".to_owned(),
+            AttributeType::UserName => "USERNAME".to_owned(),
+            AttributeType::Password => "PASSWORD".to_owned(),
+            AttributeType::MessageIntegrity => "MESSAGE-INTEGRITY".to_owned(),
+            AttributeType::ErrorCode => "ERROR-CODE".to_owned(),
+            AttributeType::UnknownAttribute => "UNKNOWN-ATTRIBUTES".to_owned(),
+            AttributeType::ReflectedFrom => "REFLECTED-FROM".to_owned(),
+            AttributeType::ChannelNumber => "CHANNEL-NUMBER".to_owned(),
+            AttributeType::LifeTime => "LIFETIME".to_owned(),
+            AttributeType::BandWidth => "BANDWIDTH".to_owned(),
+            AttributeType::XorPeerAddress => "XOR-PEER-ADDRESS".to_owned(),
+            AttributeType::Data => "DATA".to_owned(),
+            AttributeType::Realm => "REALM".to_owned(),
+            AttributeType::Nonce => "NONCE".to_owned(),
+            AttributeType::XorRelayedAddress => "XOR-RELAYED-ADDRESS".to_owned(),
+            AttributeType::RequestAddressFamily => "REQUESTED-ADDRESS-FAMILY".to_owned(),
+            AttributeType::EvenPort => "EVEN-PORT".to_owned(),
+            AttributeType::RequestedTransport => "REQUESTED-TRANSPORT".to_owned(),
+            AttributeType::DontFragment => "DONT-FRAGMENT".to_owned(),
+            AttributeType::AccessToken => "ACCESS-TOKEN".to_owned(),
+            AttributeType::XorMappedAddress => "XOR-MAPPED-ADDRESS".to_owned(),
+            AttributeType::TimerVal => "TIMER-VAL".to_owned(),
+            AttributeType::ReservationToken => "RESERVATION-TOKEN".to_owned(),
+            AttributeType::Priority => "PRIORITY".to_owned(),
+            AttributeType::UseCandidate => "USE-CANDIDATE".to_owned(),
+            AttributeType::Padding => "PADDING".to_owned(),
+            AttributeType::ResponsePort => "RESPONSE-PORT".to_owned(),
+            AttributeType::ConnectionID => "CONNECTION-ID".to_owned(),
+            AttributeType::Software => "SOFTWARE".to_owned(),
+            AttributeType::AlternateServer => "ALTERNATE-SERVER".to_owned(),
+            AttributeType::TransactionTransmitCounter => "TRANSACTION_TRANSMIT_COUNTER".to_owned(),
+            AttributeType::CacheTimeout => "CACHE-TIMEOUT".to_owned(),
+            AttributeType::FingerPrint => "FINGERPRINT".to_owned(),
+            AttributeType::ICEControlled => "ICE-CONTROLLED".to_owned(),
+            AttributeType::ICEControlling => "ICE-CONTROLLING".to_owned(),
+            AttributeType::ResponseOrigin => "RESPONSE-ORIGIN".to_owned(),
+            AttributeType::OtherAddress => "OTHER-ADDRESS".to_owned(),
+            AttributeType::ECNCheckStun => "ECN-CHECK STUN".to_owned(),
+            AttributeType::ThirdPartyAuthorization => "THIRD-PARTY-AUTHORIZATION".to_owned(),
+            AttributeType::MobilityTicket => "MOBILITY-TICKET".to_owned(),
+            AttributeType::CiscoStunFlowData => "CISCO-STUN-FLOWDATA".to_owned(),
+            AttributeType::ENFFlowDescription => "ENF-FLOW-DESCRIPTION".to_owned(),
+            AttributeType::ENFNetworkStatus => "ENF-NETWORK-STATUS".to_owned()
         }
     }
 }
@@ -273,68 +276,128 @@ impl AttributeType {
             _      => Err("Range(0x0000 ... 0xFFFF and ).")
         }
     }
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        let hex_str = bytes[..2].iter().map(|b| format!("{:02X}", b)).collect::<Vec<String>>().join("");
+        let number  = match u32::from_str_radix(hex_str.as_str(), 16){
+            Ok(number) => number,
+            Err(_) => return Err("Attribute Type parse error.")
+        };
+        AttributeType::from_u32(number)
+    }
     pub fn to_u32(&self) -> u32 {
         match *self {
-                AttributeType::MappedAddress    => 0x0001,
-                AttributeType::ResponseAddress  => 0x0002,
-                AttributeType::ChangeRequest    => 0x0003,
-                AttributeType::SourceAddress    => 0x0004,
-                AttributeType::ChangedAddress   => 0x0005,
-                AttributeType::UserName         => 0x0006,
-                AttributeType::Password         => 0x0007,
-                AttributeType::MessageIntegrity => 0x0008,
-                AttributeType::ErrorCode        => 0x0009,
-                AttributeType::UnknownAttribute => 0x000A,
-                AttributeType::ReflectedFrom    => 0x000B,
-                AttributeType::ChannelNumber    => 0x000C,
-                AttributeType::LifeTime         => 0x000D,
-                AttributeType::BandWidth        => 0x0010,
-                AttributeType::XorPeerAddress   => 0x0012,
-                AttributeType::Data             => 0x0013,
-                AttributeType::Realm            => 0x0014,
-                AttributeType::Nonce            => 0x0015,
-                AttributeType::XorRelayedAddress    => 0x0016,
-                AttributeType::RequestAddressFamily => 0x0017,
-                AttributeType::EvenPort             => 0x0018,
-                AttributeType::RequestedTransport   => 0x0019,
-                AttributeType::DontFragment         => 0x001A,
-                AttributeType::AccessToken          => 0x001B,
-                AttributeType::XorMappedAddress     => 0x0020,
-                AttributeType::TimerVal             => 0x0021,
-                AttributeType::ReservationToken     => 0x0022,
-                AttributeType::Priority             => 0x0024,
-                AttributeType::UseCandidate         => 0x0025,
-                AttributeType::Padding              => 0x0026,
-                AttributeType::ResponsePort         => 0x0027,
-                AttributeType::ConnectionID         => 0x002A,
-                AttributeType::Software             => 0x8022,
-                AttributeType::AlternateServer      => 0x8023,
-                AttributeType::TransactionTransmitCounter => 0x8025,
-                AttributeType::CacheTimeout         => 0x8027,
-                AttributeType::FingerPrint          => 0x8028,
-                AttributeType::ICEControlled        => 0x8029,
-                AttributeType::ICEControlling       => 0x802A,
-                AttributeType::ResponseOrigin       => 0x802B,
-                AttributeType::OtherAddress         => 0x802C,
-                AttributeType::ECNCheckStun         => 0x802D,
-                AttributeType::ThirdPartyAuthorization => 0x802E,
-                AttributeType::MobilityTicket          => 0x8030,
-                AttributeType::CiscoStunFlowData       => 0xC000,
-                AttributeType::ENFFlowDescription      => 0xC001,
-                AttributeType::ENFNetworkStatus        => 0xC002
+            AttributeType::MappedAddress    => 0x0001,
+            AttributeType::ResponseAddress  => 0x0002,
+            AttributeType::ChangeRequest    => 0x0003,
+            AttributeType::SourceAddress    => 0x0004,
+            AttributeType::ChangedAddress   => 0x0005,
+            AttributeType::UserName         => 0x0006,
+            AttributeType::Password         => 0x0007,
+            AttributeType::MessageIntegrity => 0x0008,
+            AttributeType::ErrorCode        => 0x0009,
+            AttributeType::UnknownAttribute => 0x000A,
+            AttributeType::ReflectedFrom    => 0x000B,
+            AttributeType::ChannelNumber    => 0x000C,
+            AttributeType::LifeTime         => 0x000D,
+            AttributeType::BandWidth        => 0x0010,
+            AttributeType::XorPeerAddress   => 0x0012,
+            AttributeType::Data             => 0x0013,
+            AttributeType::Realm            => 0x0014,
+            AttributeType::Nonce            => 0x0015,
+            AttributeType::XorRelayedAddress    => 0x0016,
+            AttributeType::RequestAddressFamily => 0x0017,
+            AttributeType::EvenPort             => 0x0018,
+            AttributeType::RequestedTransport   => 0x0019,
+            AttributeType::DontFragment         => 0x001A,
+            AttributeType::AccessToken          => 0x001B,
+            AttributeType::XorMappedAddress     => 0x0020,
+            AttributeType::TimerVal             => 0x0021,
+            AttributeType::ReservationToken     => 0x0022,
+            AttributeType::Priority             => 0x0024,
+            AttributeType::UseCandidate         => 0x0025,
+            AttributeType::Padding              => 0x0026,
+            AttributeType::ResponsePort         => 0x0027,
+            AttributeType::ConnectionID         => 0x002A,
+            AttributeType::Software             => 0x8022,
+            AttributeType::AlternateServer      => 0x8023,
+            AttributeType::TransactionTransmitCounter => 0x8025,
+            AttributeType::CacheTimeout         => 0x8027,
+            AttributeType::FingerPrint          => 0x8028,
+            AttributeType::ICEControlled        => 0x8029,
+            AttributeType::ICEControlling       => 0x802A,
+            AttributeType::ResponseOrigin       => 0x802B,
+            AttributeType::OtherAddress         => 0x802C,
+            AttributeType::ECNCheckStun         => 0x802D,
+            AttributeType::ThirdPartyAuthorization => 0x802E,
+            AttributeType::MobilityTicket          => 0x8030,
+            AttributeType::CiscoStunFlowData       => 0xC000,
+            AttributeType::ENFFlowDescription      => 0xC001,
+            AttributeType::ENFNetworkStatus        => 0xC002
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum AttributeValue {
+    MappedAddress(SocketAddr),
+    XorMappedAddress(SocketAddr),
+    ResponseAddress(SocketAddr),
+    ResponseOrigin(SocketAddr),
+    XorPeerAddress(SocketAddr),
+    UserName,
+    ErrorCode(ErrorCode),
+    UnknownAttribute,
+    ReflectedFrom,
+}
+
+impl AttributeValue {
+    pub fn from_bytes(attr_type: AttributeType, bytes: &[u8]) -> Result<Self, &'static str>{
+        unimplemented!();
+    }
+    pub fn into_bytes(&self) -> Vec<u8> {
+        match *self {
+            AttributeValue::MappedAddress(ref socket_addr) => {
+                let family = match *socket_addr {
+                    SocketAddr::V4(_) => 0x01u8,
+                    SocketAddr::V6(_) => 0x02u8
+                };
+                let port: u16 = socket_addr.port();
+                let address = format!("{}", socket_addr.ip());
+                
+                let mut bytes: Vec<u8> = vec![0, family];
+                let port_hex_string = format!("{:016b}", port);
+                bytes.push(u8::from_str_radix(&port_hex_string[0.. 8], 10).unwrap());
+                bytes.push(u8::from_str_radix(&port_hex_string[8..16], 10).unwrap());
+                bytes.extend(address.into_bytes());
+                bytes
+            },
+            AttributeValue::ErrorCode(ref error_code) => {
+                let mut bytes:Vec<u8>  = vec![0, 0];
+                let code   = error_code.to_u32();
+                let class  = (code/100) as u8; // 3 bits
+                let number = (code%100) as u8; // 8 bits
+                bytes.push(u8::from_str_radix(format!("{:02x}", class).as_str(), 10).unwrap());
+                bytes.push(u8::from_str_radix(format!("{:02x}", number).as_str(), 10).unwrap());
+                bytes.extend(error_code.to_bytes());
+                bytes
+            },
+            _ => unimplemented!()
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Attribute {
-    type_ : AttributeType,
-    length: u32,
-    value : String
+    type_ : AttributeType,  // 16 bits
+    length: u32,            // 16 bits
+    value : String          // 32 bits ( Or More. )
 }
 
 impl Attribute {
-    pub fn to_bytes(&self) -> &[u8] {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str>{
+        unimplemented!();
+    }
+    pub fn into_bytes(&self) -> Vec<u8> {
         unimplemented!();
     }
 }
