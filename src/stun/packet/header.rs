@@ -2,7 +2,7 @@
 use std::str::FromStr;
 use std::string::ToString;
 
-const MAGIC_COOKIE: u32 = 0x2112A442;
+use super::super::constant::STUN_MAGIC_COOKIE;
 
 /// Message Class
 #[derive(Debug)]
@@ -195,7 +195,7 @@ impl Header {
         let length_bits = format!("{:016b}", self.length);
         bytes.push(u8::from_str_radix(&length_bits[0..8], 2).unwrap());
         bytes.push(u8::from_str_radix(&length_bits[8..16], 2).unwrap());
-        if self.magic_cookie == MAGIC_COOKIE {
+        if self.magic_cookie == STUN_MAGIC_COOKIE {
             let mc_bits = format!("{:032b}", self.magic_code);
             bytes.push(u8::from_str_radix(&mc_bits[ 0.. 8], 2).unwrap());
             bytes.push(u8::from_str_radix(&mc_bits[ 8..16], 2).unwrap());
@@ -241,7 +241,7 @@ impl Header {
                     Err(_)           => return Err("magic cookie error")
                 };
 
-                let transaction_id = if magic_cookie != MAGIC_COOKIE {
+                let transaction_id = if magic_cookie != STUN_MAGIC_COOKIE {
                     bytes_to_hex_str(&bytes[4..20])
                 } else {
                     bytes_to_hex_str(&bytes[8..20])
