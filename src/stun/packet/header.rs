@@ -184,8 +184,7 @@ pub fn bytes_to_hex_str(bytes: &[u8]) -> String {
 impl Header {
     pub fn into_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
-
-        // bytes.push(u8::from_str_radix(format!("{:02X}", magic_code as u8).as_str(), 10));
+        
         assert_eq!(self.magic_code, 0u8);
 
         let bits = format!("00{:02b}", self.class.to_u32() as u8 )
