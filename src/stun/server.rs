@@ -9,16 +9,34 @@ use super::{url_parse, STUN_PORT, STUNS_PORT};
 use super::{packet};
 
 pub fn handler(msg: &[u8], response: &mut [u8], 
-    peer_socket_addr: &SocketAddr, local_socket_addr: &SocketAddr) -> Result<usize, ()>{
+    peer_socket_addr: &SocketAddr, local_socket_addr: &SocketAddr) -> Result<usize, &'static str>{
+
     println!("[Handler] Local Addr: {:?} <-- Peer Addr: {:?}", local_socket_addr, peer_socket_addr);
 
-    if msg.len() >= 20 {
-        match packet::Header::from_bytes(msg) {
-            Ok(head) => println!("{:?}", head),
-            Err(e)   => println!("{:?}", e)
-        };
+    match packet::Header::from_bytes(&msg[..20]) {
+        Ok(mut head) => {
+            println!("[DEBUG] STUN Request Head: {:?}", head);
+
+            let attr = packet::Attribute::MappedAddress(peer_socket_addr.clone());
+
+            let attr_bytes: Vec<u8> = attr.into_bytes();
+            let attr_length = attr_bytes.len() as u16;
+
+            head.set_class(packet::header::Class::SuccessResponse);
+            head.set_length(attr_length);
+
+            let mut stun_packet: Vec<u8> = vec![];
+
+            stun_packet.extend(head.into_bytes());
+            stun_packet.extend(attr_bytes);
+            for idx in 0..stun_packet.len() {
+                response[idx] = stun_packet[idx];
+            }
+            println!("[DEBUG] STUN Response: {:?}", stun_packet);
+            Ok(stun_packet.len())
+        },
+        Err(e)   => Err(e)
     }
-    Ok(0)
 }
 
 pub fn tcp_server(host: &str){

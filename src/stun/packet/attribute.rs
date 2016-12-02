@@ -338,7 +338,7 @@ impl AttributeType {
 }
 
 #[derive(Debug)]
-pub enum AttributeValue {
+pub enum Attribute {
     MappedAddress(SocketAddr),
     XorMappedAddress(SocketAddr),
     ResponseAddress(SocketAddr),
@@ -350,13 +350,28 @@ pub enum AttributeValue {
     ReflectedFrom,
 }
 
-impl AttributeValue {
+impl Attribute {
     pub fn from_bytes(attr_type: AttributeType, bytes: &[u8]) -> Result<Self, &'static str>{
         unimplemented!();
     }
     pub fn into_bytes(&self) -> Vec<u8> {
+        /**
+            type  : AttributeType,  // 16 bits
+            length: u32,            // 16 bits
+            value : Attribute       // 32 bits ( Or More. )
+        **/
         match *self {
-            AttributeValue::MappedAddress(ref socket_addr) => {
+            Attribute::MappedAddress(ref socket_addr) => {
+                // type
+                let attribute_type = 0x0001u16;
+                let attribute_type_bits = format!("{:016b}", attribute_type );
+
+                let mut bytes: Vec<u8> = vec![
+                    u8::from_str_radix(&attribute_type_bits[0.. 8], 2).unwrap(),
+                    u8::from_str_radix(&attribute_type_bits[8..16], 2).unwrap()
+                ];
+                
+                // value
                 let family = match *socket_addr {
                     SocketAddr::V4(_) => 0x01u8,
                     SocketAddr::V6(_) => 0x02u8
@@ -364,40 +379,50 @@ impl AttributeValue {
                 let port: u16 = socket_addr.port();
                 let address = format!("{}", socket_addr.ip());
                 
-                let mut bytes: Vec<u8> = vec![0, family];
-                let port_hex_string = format!("{:016b}", port);
-                bytes.push(u8::from_str_radix(&port_hex_string[0.. 8], 10).unwrap());
-                bytes.push(u8::from_str_radix(&port_hex_string[8..16], 10).unwrap());
-                bytes.extend(address.into_bytes());
+                let mut attribute_value: Vec<u8> = vec![0, family];
+                let port_bits = format!("{:016b}", port);
+
+                attribute_value.push(u8::from_str_radix(&port_bits[0.. 8], 2).unwrap());
+                attribute_value.push(u8::from_str_radix(&port_bits[8..16], 2).unwrap());
+                attribute_value.extend(address.into_bytes());
+
+                // length
+                let attribute_length_bits = format!("{:016b}", attribute_value.len() as u16 );
+
+                bytes.push(u8::from_str_radix(&attribute_type_bits[0.. 8], 2).unwrap());
+                bytes.push(u8::from_str_radix(&attribute_type_bits[8..16], 2).unwrap());
+
+                bytes.extend(attribute_value);
                 bytes
             },
-            AttributeValue::ErrorCode(ref error_code) => {
-                let mut bytes:Vec<u8>  = vec![0, 0];
+            Attribute::ErrorCode(ref error_code) => {
+                let attribute_type = 0x0009u16;
+                let attribute_type_bits = format!("{:016b}", attribute_type );
+
+                let mut bytes: Vec<u8> = vec![
+                    u8::from_str_radix(&attribute_type_bits[0.. 8], 2).unwrap(),
+                    u8::from_str_radix(&attribute_type_bits[8..16], 2).unwrap()
+                ];
+
+                // value
+                let mut attribute_value:Vec<u8>  = vec![0, 0];
                 let code   = error_code.to_u32();
                 let class  = (code/100) as u8; // 3 bits
                 let number = (code%100) as u8; // 8 bits
-                bytes.push(u8::from_str_radix(format!("{:02x}", class).as_str(), 10).unwrap());
-                bytes.push(u8::from_str_radix(format!("{:02x}", number).as_str(), 10).unwrap());
-                bytes.extend(error_code.to_bytes());
+                attribute_value.push(u8::from_str_radix(format!("{:02x}", class).as_str(), 10).unwrap());
+                attribute_value.push(u8::from_str_radix(format!("{:02x}", number).as_str(), 10).unwrap());
+                attribute_value.extend(error_code.to_bytes());
+
+                // length
+                let attribute_length_bits = format!("{:016b}", attribute_value.len() as u16 );
+
+                bytes.push(u8::from_str_radix(&attribute_type_bits[0.. 8], 2).unwrap());
+                bytes.push(u8::from_str_radix(&attribute_type_bits[8..16], 2).unwrap());
+
+                bytes.extend(attribute_value);
                 bytes
             },
             _ => unimplemented!()
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct Attribute {
-    type_ : AttributeType,  // 16 bits
-    length: u32,            // 16 bits
-    value : String          // 32 bits ( Or More. )
-}
-
-impl Attribute {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, &'static str>{
-        unimplemented!();
-    }
-    pub fn into_bytes(&self) -> Vec<u8> {
-        unimplemented!();
     }
 }

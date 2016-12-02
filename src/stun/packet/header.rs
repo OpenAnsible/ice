@@ -5,7 +5,7 @@ use std::string::ToString;
 use super::super::constant::STUN_MAGIC_COOKIE;
 
 /// Message Class
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Class {
     Request,
     Indication,
@@ -67,7 +67,7 @@ Range:
 
 **/
 /// Message Method
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Method {
     Binding,
     SharedSecret,
@@ -167,7 +167,7 @@ Head Struct
     Transaction ID : 96 bits ( 12 Bytes )
 
 **/
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Header {
     magic_code    : u8,     //  2 bits
     class         : Class,  //  2 bits
@@ -182,28 +182,6 @@ pub fn bytes_to_hex_str(bytes: &[u8]) -> String {
 }
 
 impl Header {
-    pub fn into_bytes(&self) -> Vec<u8> {
-        let mut bytes: Vec<u8> = Vec::new();
-
-        assert_eq!(self.magic_code, 0u8);
-
-        let bits = format!("00{:02b}", self.class.to_u32() as u8 )
-                 + format!("{:012b}", self.method.to_u32() as u8).as_ref();
-        bytes.push(u8::from_str_radix(&bits[0.. 8], 2).unwrap());
-        bytes.push(u8::from_str_radix(&bits[8..16], 2).unwrap());
-        let length_bits = format!("{:016b}", self.length);
-        bytes.push(u8::from_str_radix(&length_bits[0..8], 2).unwrap());
-        bytes.push(u8::from_str_radix(&length_bits[8..16], 2).unwrap());
-        if self.magic_cookie == STUN_MAGIC_COOKIE {
-            let mc_bits = format!("{:032b}", self.magic_code);
-            bytes.push(u8::from_str_radix(&mc_bits[ 0.. 8], 2).unwrap());
-            bytes.push(u8::from_str_radix(&mc_bits[ 8..16], 2).unwrap());
-            bytes.push(u8::from_str_radix(&mc_bits[16..24], 2).unwrap());
-            bytes.push(u8::from_str_radix(&mc_bits[24..32], 2).unwrap());
-        }
-        bytes.extend(self.transaction_id.clone().into_bytes());
-        bytes
-    }
     pub fn from_bytes (bytes: &[u8]) -> Result<Self, &'static str> {
         if bytes.len() < 20 {
             return Err("header size must be 20 Bytes.");
@@ -254,5 +232,41 @@ impl Header {
             magic_cookie  : magic_cookie,
             transaction_id: transaction_id
         })
+    }
+    pub fn set_length(&mut self, length: u16) {
+        self.length = length;
+    }
+    pub fn set_class(&mut self, class: Class){
+        self.class = class;
+    }
+    pub fn set_method(&mut self, method: Method){
+        self.method = method;
+    }
+    pub fn set_transaction_id(&mut self, transaction_id: String) {
+        self.transaction_id = transaction_id;
+    }
+    pub fn into_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = vec![];
+
+        assert_eq!(self.magic_code, 0u8);
+
+        let bits = format!("00{:02b}", self.class.to_u32() as u8 )
+                 + format!("{:012b}", self.method.to_u32() as u8).as_ref();
+
+        bytes.push(u8::from_str_radix(&bits[0.. 8], 2).unwrap());
+        bytes.push(u8::from_str_radix(&bits[8..16], 2).unwrap());
+        
+        let length_bits = format!("{:016b}", self.length);
+        bytes.push(u8::from_str_radix(&length_bits[0..8], 2).unwrap());
+        bytes.push(u8::from_str_radix(&length_bits[8..16], 2).unwrap());
+        if self.magic_cookie == STUN_MAGIC_COOKIE {
+            let mc_bits = format!("{:032b}", self.magic_code);
+            bytes.push(u8::from_str_radix(&mc_bits[ 0.. 8], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[ 8..16], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[16..24], 2).unwrap());
+            bytes.push(u8::from_str_radix(&mc_bits[24..32], 2).unwrap());
+        }
+        bytes.extend(self.transaction_id.clone().into_bytes());
+        bytes
     }
 }
